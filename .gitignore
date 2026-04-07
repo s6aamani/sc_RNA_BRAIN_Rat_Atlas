@@ -1,0 +1,59 @@
+# ── Large data files ──────────────────────────────────────────────────────────
+Data/*
+!Data/.gitkeep
+External/*
+!External/.gitkeep
+Results/*
+!Results/.gitkeep
+
+# ── CellRanger / sequencing ───────────────────────────────────────────────────
+*.fastq.gz
+*.fastq
+*.bam
+*.bai
+*.vcf
+*.bcf
+
+# ── Single-cell data formats ──────────────────────────────────────────────────
+*.h5
+*.h5ad
+*.loom
+*.mtx
+*.mtx.gz
+
+# ── R ─────────────────────────────────────────────────────────────────────────
+*.RData
+*.Rhistory
+*.Rds
+*.rds
+.Rproj.user/
+Rplot*.png
+Rplot*.pdf
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+.venv/
+env/
+
+# ── Jupyter ───────────────────────────────────────────────────────────────────
+.jupyter/
+
+# ── HPC / SLURM ───────────────────────────────────────────────────────────────
+*.out
+*.err
+slurm-*.out
+
+# ── OS / editor ───────────────────────────────────────────────────────────────
+.DS_Store
+*.swp
+*.swo
+*~
+.vscode/
+*.code-workspace
+
+# ── Keep empty tracked directories ───────────────────────────────────────────
+!Analysis/.gitkeep
+!Scripts/.gitkeep
