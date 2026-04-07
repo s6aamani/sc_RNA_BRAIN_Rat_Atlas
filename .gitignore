@@ -6,6 +6,9 @@ External/*
 Results/*
 !Results/.gitkeep
 
+# ── Tools (large binaries) ────────────────────────────────────────────────────
+opt/
+
 # ── CellRanger / sequencing ───────────────────────────────────────────────────
 *.fastq.gz
 *.fastq
@@ -56,4 +59,3 @@ slurm-*.out
 
 # ── Keep empty tracked directories ───────────────────────────────────────────
 !Analysis/.gitkeep
-!Scripts/.gitkeep
