@@ -16,7 +16,8 @@ sc_RNA_BRAIN_Rat_Atlas/
 │   ├── run_nextflow.sh          # Pipeline launcher (submit this)
 │   ├── 00_build_rat_ref.sh      # Download mRatBN7.2 + cellranger mkref
 │   ├── 01_cellranger_rat19.sh   # CellRanger count (standalone SLURM)
-│   └── 02_seurat_rat19.R        # QC, clustering, marker detection
+│   ├── 02_seurat_rat19.R        # QC, clustering, marker detection
+│   └── rserver/                 # RStudio SLURM reservation launcher + logs
 ├── Data/                        # CellRanger outputs + Seurat objects (not tracked)
 ├── External/                    # Reference genomes (not tracked)
 ├── Results/                     # Figures and tables (not tracked)
@@ -50,6 +51,15 @@ Rscript Scripts/02_seurat_rat19.R \
   --h5 Data/rat19/rat19/outs/filtered_feature_bc_matrix.h5 \
   --sample rat19 --out_dir Results/rat19    # depends on step 2
 ```
+
+**Interactive RStudio on SLURM:**
+```bash
+bash Scripts/rserver/start_rstudio.sh
+```
+
+The launcher writes the session log to `Scripts/rserver/logs/`. Check the resulting
+`rstudio-geo-server.<jobid>.out` file for the SSH tunnel and login instructions, then
+stop the session with `scancel -f <jobid>`.
 
 ## Data
 
