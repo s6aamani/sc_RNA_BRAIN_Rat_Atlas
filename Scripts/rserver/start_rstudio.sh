@@ -3,24 +3,26 @@ set -euo pipefail
 
 # How to use:
 # 1) Run: bash Scripts/rserver/start_rstudio.sh
-# 2) Check Scripts/rserver/logs/rstudio-geo-server.<jobid>.out for tunnel/login instructions.
+# 2) Check logs/rstudio-geo-server.<jobid>.out for tunnel/login instructions.
 # 3) Stop the session with: scancel -f <jobid>
 
 # Keep the RStudio session close to the analysis stack while using the newer
 # RStudio container available on this cluster.
 module purge || true
-module load gnu9/9.4.0
-module load R-src/4.4.2
-module load RStudio/4.4.3-geo
+module load "${GNU_MODULE:-gnu9/9.4.0}"
+module load "${R_MODULE:-R-src/4.4.2}"
+module load "${RSTUDIO_MODULE:-RStudio/4.4.3-geo}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-LOGS_DIR="${SCRIPT_DIR}/logs"
-R_BIN="/opt/ohpc/pub/libs/gnu9/R-src/4.4.2/bin/R"
-RSERVER_SLURM="/opt/ohpc/pub/apps/containers/rstudio-4.4.3-geo/start-rserver.slurm"
-EXTRA_BIND="/masc_shared:/masc_shared"
-SRC_USER_LIB="/home/$USER/R/x86_64-pc-linux-gnu-library/4.4"
-ROCKER_USER_LIB="/home/$USER/R/rocker-rstudio/4.4.3-geo"
+LOGS_DIR="${PROJECT_DIR}/logs"
+R_BIN="${R_BIN:-/opt/ohpc/pub/libs/gnu9/R-src/4.4.2/bin/R}"
+RSERVER_SLURM="${RSERVER_SLURM:-/opt/ohpc/pub/apps/containers/rstudio-4.4.3-geo/start-rserver.slurm}"
+EXTRA_BIND="${EXTRA_BIND:-/masc_shared:/masc_shared}"
+SRC_USER_LIB="${SRC_USER_LIB:-/home/$USER/R/x86_64-pc-linux-gnu-library/4.4}"
+ROCKER_USER_LIB="${ROCKER_USER_LIB:-/home/$USER/R/rocker-rstudio/4.4.3-geo}"
+R_HOME_DIR="$("${R_BIN}" RHOME)"
+R_LIB_DIR="${R_HOME_DIR}/lib"
 
 if [[ ! -d "${PROJECT_DIR}" ]]; then
   echo "ERROR: Project directory not found: ${PROJECT_DIR}" >&2
@@ -38,15 +40,21 @@ if [[ ! -f "${RSERVER_SLURM}" ]]; then
 fi
 
 export RSTUDIO_WHICH_R="${R_BIN}"
-export RENV_CONFIG_EXTERNAL_LIBRARIES="${SRC_USER_LIB}"
-unset R_HOME
+export RENV_CONFIG_EXTERNAL_LIBRARIES="${ROCKER_USER_LIB}"
+export R_HOME="${R_HOME_DIR}"
 unset R_LIBS
 unset R_LIBS_SITE
-export R_LIBS_USER="${SRC_USER_LIB}"
+# Inside the rocker container, point R at the rocker-specific library. Pure-R
+# packages are symlinked from SRC_USER_LIB into ROCKER_USER_LIB by the mirror
+# step below; compiled packages must be installed natively in ROCKER_USER_LIB
+# (see Scripts/rserver/rebuild_native_pkgs.R).
+export R_LIBS_USER="${ROCKER_USER_LIB}"
 export SINGULARITYENV_RENV_CONFIG_EXTERNAL_LIBRARIES="${RENV_CONFIG_EXTERNAL_LIBRARIES}"
 export APPTAINERENV_RENV_CONFIG_EXTERNAL_LIBRARIES="${RENV_CONFIG_EXTERNAL_LIBRARIES}"
 export SINGULARITYENV_R_LIBS_SITE="${R_LIBS_USER}"
 export APPTAINERENV_R_LIBS_SITE="${R_LIBS_USER}"
+export SINGULARITYENV_R_HOME="${R_HOME}"
+export APPTAINERENV_R_HOME="${R_HOME}"
 
 # Avoid inherited conda envs overriding start-rserver internals.
 if [[ -n "${CONDA_DEFAULT_ENV:-}" ]]; then
@@ -73,17 +81,31 @@ if [[ -n "${LD_LIBRARY_PATH:-}" ]]; then
       | awk '$0 !~ /(conda|miniconda|miniforge|mambaforge)/' \
       | paste -sd: -
   )"
-  export LD_LIBRARY_PATH="${clean_ld_library_path}"
+  export LD_LIBRARY_PATH="${R_LIB_DIR}:${clean_ld_library_path}"
+else
+  export LD_LIBRARY_PATH="${R_LIB_DIR}"
 fi
 
+export SINGULARITYENV_LD_LIBRARY_PATH="${LD_LIBRARY_PATH}"
+export APPTAINERENV_LD_LIBRARY_PATH="${LD_LIBRARY_PATH}"
+
 # Mirror the canonical user library into rocker-rstudio so the container sees
-# the same package builds as non-container R jobs.
+# the same package builds as non-container R jobs — but ONLY for pure-R packages.
+# Packages with compiled code (a libs/ dir with .so files) must be built against
+# the rocker container's BLAS/LAPACK (libopenblas), not OpenHPC's libRlapack.so.
+# Mirroring those via symlink drags in .so files that cannot resolve their
+# shared-library deps inside the container (e.g. spam -> libRlapack.so not found).
 mkdir -p "${ROCKER_USER_LIB}"
 if [[ -d "${SRC_USER_LIB}" ]]; then
   backup_stamp="$(date +%Y%m%d-%H%M%S)"
   while IFS= read -r pkgdir; do
     pkg="$(basename "${pkgdir}")"
     [[ "${pkg}" == 00LOCK* ]] && continue
+    # Skip packages with compiled shared objects — they must be installed
+    # natively inside the rocker container.
+    if compgen -G "${pkgdir}/libs/*.so" > /dev/null; then
+      continue
+    fi
     dst_pkg="${ROCKER_USER_LIB}/${pkg}"
     if [[ -L "${dst_pkg}" ]]; then
       current_target="$(readlink "${dst_pkg}")"
@@ -152,5 +174,5 @@ if ! grep -q -- '--server-working-dir' "${tmp_slurm}"; then
   mv "${tmp_slurm2}" "${tmp_slurm}"
 fi
 
-# Submit from the logs directory so the session log stays beside the launcher.
+# Submit from the logs directory so the session log stays in the project-level logs folder.
 sbatch --chdir "${LOGS_DIR}" "${tmp_slurm}"

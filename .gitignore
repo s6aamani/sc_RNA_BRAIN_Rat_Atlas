@@ -1,4 +1,6 @@
 # ── Large data files ──────────────────────────────────────────────────────────
+Analysis/*
+!Analysis/.gitkeep
 Data/*
 !Data/.gitkeep
 External/*
@@ -48,6 +50,8 @@ env/
 *.out
 *.err
 slurm-*.out
+logs/*
+!logs/.gitkeep
 
 # ── OS / editor ───────────────────────────────────────────────────────────────
 .DS_Store
@@ -56,6 +60,12 @@ slurm-*.out
 *~
 .vscode/
 *.code-workspace
+.codex
+.codex/
 
-# ── Keep empty tracked directories ───────────────────────────────────────────
-!Analysis/.gitkeep
+# ── Nextflow / workflow runtime ──────────────────────────────────────────────
+.nextflow*
+Scripts/.nextflow/
+Scripts/nextflow
+Scripts/timeline-*.html
+*.mro

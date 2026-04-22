@@ -9,9 +9,14 @@
 
 set -euo pipefail
 
-CELLRANGER=/masc_shared/ag_maj/sc_RNA_BRAIN_Rat_Atlas/opt/cellranger-10.0.0/cellranger
-REF_DIR=/masc_shared/ag_maj/sc_RNA_BRAIN_Rat_Atlas/External/rat_ref
-ENSEMBL_RELEASE=112
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+CELLRANGER="${CELLRANGER_BIN:-${PROJECT_DIR}/opt/cellranger-10.0.0/cellranger}"
+REF_DIR="${REF_DIR:-${PROJECT_DIR}/External/rat_ref}"
+ENSEMBL_RELEASE="${ENSEMBL_RELEASE:-112}"
+
+mkdir -p "$REF_DIR"
 
 cd "$REF_DIR"
 

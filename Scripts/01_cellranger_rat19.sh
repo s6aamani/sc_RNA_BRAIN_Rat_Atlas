@@ -9,34 +9,30 @@
 
 set -euo pipefail
 
-CELLRANGER=/masc_shared/ag_maj/sc_RNA_BRAIN_Rat_Atlas/opt/cellranger-10.0.0/cellranger
-FASTQ_DIR=/masc_shared/ag_maj/dasmeh/P2024065NOS
-TRANSCRIPTOME=/masc_shared/ag_maj/sc_RNA_BRAIN_Rat_Atlas/External/rat_ref/mRatBN7.2
-OUT_DIR=/masc_shared/ag_maj/sc_RNA_BRAIN_Rat_Atlas/Data/rat19
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
+CELLRANGER="${CELLRANGER_BIN:-${PROJECT_DIR}/opt/cellranger-10.0.0/cellranger}"
+FASTQ_DIR="${FASTQ_DIR:-${PROJECT_DIR}/External/fastqs}"
+TRANSCRIPTOME="${TRANSCRIPTOME:-${PROJECT_DIR}/External/rat_ref/mRatBN7.2}"
+OUT_DIR="${OUT_DIR:-${PROJECT_DIR}/Analysis/cellranger}"
+SAMPLE_ID="${SAMPLE_ID:-rat19}"
+SAMPLE_NAMES="${SAMPLE_NAMES:-c-Li19-sal-sal,d-Li19-sal-sal}"
+
+mkdir -p "$OUT_DIR"
 cd "$OUT_DIR"
 
-echo "[$(date)] Running CellRanger count for c-Li19-sal-sal..."
+echo "[$(date)] Running merged CellRanger count for ${SAMPLE_ID}..."
 $CELLRANGER count \
-    --id=c-Li19-sal-sal \
+    --id="${SAMPLE_ID}" \
     --transcriptome="$TRANSCRIPTOME" \
     --fastqs="$FASTQ_DIR" \
-    --sample=c-Li19-sal-sal \
-    --localcores=16 \
-    --localmem=60 \
-    --create-bam=false
-
-echo "[$(date)] Running CellRanger count for d-Li19-sal-sal..."
-$CELLRANGER count \
-    --id=d-Li19-sal-sal \
-    --transcriptome="$TRANSCRIPTOME" \
-    --fastqs="$FASTQ_DIR" \
-    --sample=d-Li19-sal-sal \
+    --sample="$SAMPLE_NAMES" \
     --localcores=16 \
     --localmem=60 \
     --create-bam=false
 
 echo "[$(date)] Done."
 echo "Outputs:"
-echo "  ${OUT_DIR}/c-Li19-sal-sal/outs/filtered_feature_bc_matrix.h5"
-echo "  ${OUT_DIR}/d-Li19-sal-sal/outs/filtered_feature_bc_matrix.h5"
+echo "  ${OUT_DIR}/${SAMPLE_ID}/outs/filtered_feature_bc_matrix"
+echo "  ${OUT_DIR}/${SAMPLE_ID}/outs/filtered_feature_bc_matrix.h5"
