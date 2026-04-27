@@ -1,15 +1,20 @@
-# Rat Brain Single-Nucleus RNA-seq Atlas Workflow
+# Cross-Species Single-Cell Brain Atlas: Rat × Mouse
 
-Processing and first-pass analysis workflow for rat brain single-nucleus RNA-seq
-data, centered on one sample (`rat19`) generated with 10x Genomics chemistry.
+A comparative single-cell transcriptomic atlas project quantifying conservation
+and divergence of cell types and gene-expression programs between rat and mouse
+brain.
 
-The repo currently covers:
+This repository currently implements the **rat-side processing pipeline**,
+centered on sample `rat19` (10x Genomics single-nucleus RNA-seq, saline/saline
+control). It covers:
+
 - optional Cell Ranger reference construction
 - Cell Ranger counting for merged technical replicates
 - Seurat-based QC, clustering, PCA/UMAP diagnostics, and marker detection
+- an interactive RStudio launcher for the cluster
 
-It does not yet implement the downstream cross-species atlas integration that is
-outlined below.
+Cross-species integration with mouse atlases is the next milestone and is
+outlined under [Planned Downstream Atlas Work](#planned-downstream-atlas-work).
 
 ## Overview
 
@@ -39,6 +44,8 @@ sc_RNA_BRAIN_Rat_Atlas/
 │   ├── nextflow.config          # Nextflow config for SLURM execution
 │   ├── run_nextflow.sh          # SLURM launcher for Nextflow
 │   └── rserver/                 # RStudio-on-SLURM helpers
+│       ├── start_rstudio.sh         # Submit an rserver SLURM job
+│       └── rebuild_native_pkgs.R    # One-time rocker-container package fix
 ├── Analysis/                    # Generated Cell Ranger and Nextflow outputs
 ├── Data/                        # Generated Seurat objects and downstream data
 ├── External/                    # Generated/local references
@@ -189,6 +196,28 @@ Stop the session with:
 ```bash
 scancel -f <jobid>
 ```
+
+### R libraries: batch vs interactive
+
+The launcher uses two R libraries:
+
+- `~/R/x86_64-pc-linux-gnu-library/4.4/` — **batch jobs** (OpenHPC `R-src/4.4.2` module)
+- `~/R/rocker-rstudio/4.4.3-geo/` — **interactive sessions** (rocker `4.4.3-geo` container)
+
+Pure-R packages are auto-symlinked from the batch library into the rocker
+library on each launch. Compiled packages must be installed natively in the
+rocker library because the two R builds use different BLAS/LAPACK and dragging
+`.so` files across them fails with `libRlapack.so: cannot open shared object
+file`.
+
+After your first rserver launch, run **once** inside R:
+
+```r
+source("Scripts/rserver/rebuild_native_pkgs.R")
+```
+
+This installs Seurat and its native dependencies against the container's
+libopenblas. Future launches just work.
 
 ## GitHub Notes
 
